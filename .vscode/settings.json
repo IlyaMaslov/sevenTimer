@@ -1,0 +1,6 @@
+{
+    "java.project.sourcePaths": [
+        "src/core",
+        "seventimer/src/main/java/com/example/seventimer"
+    ]
+}
