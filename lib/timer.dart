@@ -2,10 +2,9 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:seven/contstants.dart';
+import 'package:seven/constants.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:system_tray/system_tray.dart' as SystemTray;
-import 'dart:developer' as developer;
 
 
 class TimerWidget extends StatefulWidget {
@@ -18,7 +17,7 @@ class TimerWidget extends StatefulWidget {
 }
 
 class TimerState extends State<TimerWidget> with RouteAware {
-  int _expected = 0;
+  int _expectedAmount = 0;
   int _done = 0;
   int _minutes = 0;
   String _remainingTime = "00:00";
@@ -28,97 +27,12 @@ class TimerState extends State<TimerWidget> with RouteAware {
   @override
   void initState() {
     super.initState();
-    initSystemTray();
-    Timer.periodic(const Duration(seconds: 1), _updateTimerState);
-    WidgetsBinding.instance.addPostFrameCallback((_){
-      _getSharedPref();
-    });
-  }
-
-  void _getSharedPref() async {
-    _pref = await SharedPreferences.getInstance();
-    setState(() {
-      _expected = _pref.getInt('expectedAmount') ?? 0;
-      _minutes = _pref.getInt('minutes') ?? 0;
-      //_done
-    });
-  }
-
-  void _updateTimerState(Timer timer) {
-    final int remainingMinutes = _minutes - _stopwatch.elapsed.inMinutes;
-    final int elapsedSeconds = _stopwatch.elapsed.inSeconds - (_stopwatch.elapsed.inMinutes * 60);
-    int remainingSeconds = 0;
-    if(elapsedSeconds != 0) {
-      remainingSeconds = 60 - elapsedSeconds;
-    }
-
-    setState(() {
-      _remainingTime = "";
-      if(remainingMinutes < 10) {
-        _remainingTime += '0';
-      }
-      _remainingTime += remainingMinutes.toString();
-      _remainingTime += ':';
-      if(remainingSeconds < 10) {
-        _remainingTime += '0';
-      }
-      _remainingTime += remainingSeconds.toString();
-    });
-
-    if(remainingMinutes == 0 && remainingSeconds == 0) {
-      setState(() {
-        _done++;
-        _stopwatch.stop();
-        _stopwatch.reset();
-      });//TODO: do i need to use setState for stopwatch?
-      //TODO: add sound alert
-    }
-  }
-
-  Future<void> initSystemTray() async {
-    String path =
-        Platform.isWindows ? 'assets/timer.png' : 'assets/timer.png';
-
-    final SystemTray.AppWindow appWindow = SystemTray.AppWindow();
-    final SystemTray.SystemTray systemTray = SystemTray.SystemTray();
-
-    await systemTray.initSystemTray(
-      iconPath: "assets/timer.ico",
-    );
-
-    final SystemTray.Menu menu = SystemTray.Menu();
-    await menu.buildFrom([
-      SystemTray.MenuItemLable(label: 'Start', onClicked: (menuItem) => _stopwatch.start(), enabled: !_isStoppable()),//TODO: fix this
-      SystemTray.MenuItemLable(label: 'Pause', onClicked: (menuItem) => _stopwatch.stop(), enabled: _isStoppable()),
-      SystemTray.MenuItemLable(label: 'Show', onClicked: (menuItem) => appWindow.show()),
-      SystemTray.MenuItemLable(label: 'Hide', onClicked: (menuItem) => appWindow.hide()),
-      SystemTray.MenuItemLable(label: 'Exit', onClicked: (menuItem) => appWindow.close()),
-    ]);
-
-    await systemTray.setContextMenu(menu);
-
-    systemTray.registerSystemTrayEventHandler((eventName) {
-      debugPrint("eventName: $eventName");
-      if (eventName == SystemTray.kSystemTrayEventClick) {
-        Platform.isWindows ? appWindow.show() : systemTray.popUpContextMenu();
-      } else if (eventName == SystemTray.kSystemTrayEventRightClick) {
-        Platform.isWindows ? systemTray.popUpContextMenu() : appWindow.show();
-      }
-    });
-  }
-
-  bool _isStoppable() {
-    return _stopwatch.isRunning;
-  }
-
-  void _updateTimer() {
-    setState(() {
-      if(_isStoppable()) {
-        _stopwatch.stop();
-      } else {
-        _stopwatch.start();
-      }
-    });
+    _initSystemTray();
+    _initSharedPref();
+    _initUpdateTimer();
+    /*WidgetsBinding.instance.addPostFrameCallback((_){
+      _setSharedPref();
+    });*/
   }
 
   @override
@@ -127,7 +41,6 @@ class TimerState extends State<TimerWidget> with RouteAware {
         ElevatedButton.styleFrom(
           primary: darkBackgroundColor
         );
-
     const TextStyle timerTextStyle =
         TextStyle(
           fontSize: 60,
@@ -146,9 +59,9 @@ class TimerState extends State<TimerWidget> with RouteAware {
         
       ),
       backgroundColor: darkBackgroundColor,
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+      body: /*Center(
+        child:*/ Column(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: <Widget>[
             Align(
               alignment: Alignment.topRight,
@@ -170,38 +83,141 @@ class TimerState extends State<TimerWidget> with RouteAware {
               ),
             ),
             Text(
-              '$_done/$_expected',
+              '$_done/$_expectedAmount',
               style: progressStyle,
             )
           ],
         ),
-      )
+      //)
     );
   }
 
-  /*@override
-  void didPop() {
-    stderr.writeln("Did pop");
+  Future<void> _initSystemTray() async {
+    final String path =
+        Platform.isWindows ? 'assets/timer.ico' : 'assets/timer.png';
+
+    final SystemTray.AppWindow appWindow = SystemTray.AppWindow();
+    final SystemTray.SystemTray systemTray = SystemTray.SystemTray();
+
+    await systemTray.initSystemTray(
+      iconPath: path,
+    );
+
+    final SystemTray.Menu menu = SystemTray.Menu();
+    await menu.buildFrom([
+      SystemTray.MenuItemLable(label: 'Start', onClicked: (menuItem) => _stopwatch.start(), enabled: !_isStoppable()),//TODO: fix this
+      SystemTray.MenuItemLable(label: 'Pause', onClicked: (menuItem) => _stopwatch.stop(), enabled: _isStoppable()),
+      SystemTray.MenuItemLable(label: 'Show', onClicked: (menuItem) => appWindow.show()),
+      SystemTray.MenuItemLable(label: 'Hide', onClicked: (menuItem) => appWindow.hide()),
+      SystemTray.MenuItemLable(label: 'Exit', onClicked: (menuItem) => appWindow.close()),
+    ]);
+
+    await systemTray.setContextMenu(menu);
+
+    systemTray.registerSystemTrayEventHandler((eventName) {
+      if (eventName == SystemTray.kSystemTrayEventClick) {
+        Platform.isWindows ? appWindow.show() : systemTray.popUpContextMenu();
+      } else if (eventName == SystemTray.kSystemTrayEventRightClick) {
+        Platform.isWindows ? systemTray.popUpContextMenu() : appWindow.show();
+      }
+    });
   }
 
-  @override
-  void didPushNext() {
-    stderr.writeln("Did push next");
-  }
-
-  @override
-  void didPush() {
-    stderr.writeln("Did push");
-    stderr.writeln("Called did push: ${ModalRoute.of(context)?.settings.name.toString()}");
-    if(ModalRoute.of(context)?.settings.name == "/") {
-      //load settings from shared storage
-      final Future<SharedPreferences> prefs = SharedPreferences.getInstance();
-        prefs.then((prefsCompl) {
-          setState(() {
-            _expected = prefsCompl.getInt('expectedAmount')!;//TODO: add null check
-            _minutes = prefsCompl.getInt('minutes')!;
-          });
-        });
+  void _updateTimerState(Timer timer) {
+    final int elapsedSeconds = _stopwatch.elapsed.inSeconds - (_stopwatch.elapsed.inMinutes * 60);
+    int remainingMinutes = _minutes - _stopwatch.elapsed.inMinutes;
+    int remainingSeconds = 0;
+    if(elapsedSeconds != 0) {
+      remainingSeconds = 60 - elapsedSeconds;
+      remainingMinutes--;
     }
-  }*/
+
+    String remainingTime = "";
+    if(remainingMinutes < 10) {
+      remainingTime += '0';
+    }
+    remainingTime += remainingMinutes.toString();
+    remainingTime += ':';
+    if(remainingSeconds < 10) {
+      remainingTime += '0';
+    }
+    remainingTime += remainingSeconds.toString();
+
+    setState(() {
+      _remainingTime = remainingTime;
+    });
+
+    if(remainingMinutes == 0 && remainingSeconds == 0) {
+      setState(() {
+        _done++;
+        _stopwatch.stop();
+        _stopwatch.reset();
+        _updateStatisticsInfo();
+      });//TODO: do i need to use setState for stopwatch?
+      //TODO: add sound alert
+    }
+
+    tryUpdateTimer();
+  }
+
+  Future<void> _initSharedPref() async {
+    _pref = await SharedPreferences.getInstance();
+    setState(() {
+      _expectedAmount = _pref.getInt('expectedAmount') ?? 0;
+      _minutes = _pref.getInt('minutes') ?? 0;
+      
+      final String currentDate = _currentDate();
+      final String productivity = _pref.getString('productivity-$currentDate') ?? "0/0";
+      final String productivityFirstHalf = productivity.split('/')[0];
+      _done = int.tryParse(productivityFirstHalf) ?? 0;
+    });
+  }
+
+  void _initUpdateTimer() {
+    Timer.periodic(const Duration(seconds: 1), _updateTimerState);
+  }
+
+  //TODO: should replace it with a proper notify systems
+  Future<void> tryUpdateTimer() async {
+    int expectedAmount = _pref.getInt('expectedAmount') ?? -1;
+    int minutes = _pref.getInt('minutes') ?? -1;
+    if(_expectedAmount != expectedAmount && expectedAmount > -1 ||
+      _minutes != minutes && minutes > -1) {
+        setState(() {
+          _expectedAmount = expectedAmount;
+          _minutes = minutes;
+        });
+      }
+  }
+
+  bool _isStoppable() {
+    return _stopwatch.isRunning;
+  }
+
+  void _updateTimer() {
+    setState(() {
+      if(_isStoppable()) {
+        _stopwatch.stop();
+      } else {
+        _stopwatch.start();
+      }
+    });
+  }
+
+  //TODO: should add private options for storing statistics
+  Future<void> _updateStatisticsInfo() async {
+    final String currentDate = _currentDate();
+
+    if(!_pref.containsKey("firstDate")) {
+      _pref.setString("firstDate", currentDate);
+    }
+
+    _pref.setString("productivity-$currentDate", "$_done/$_expectedAmount");
+  }
+
+  String _currentDate() {
+    var now = DateTime.now();
+    String currentDate = '${now.year}-${now.month}-${now.day}';
+    return currentDate;
+  }
 }

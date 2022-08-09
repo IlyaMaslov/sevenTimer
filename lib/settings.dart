@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:settings_ui/settings_ui.dart';
-import 'package:seven/contstants.dart';
+import 'package:seven/constants.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SettingsWidget extends StatefulWidget {
@@ -16,23 +16,15 @@ class SettingsWidget extends StatefulWidget {
 }
 
 class SettingsState extends State<SettingsWidget> {
-  late SharedPreferences _pref;
   int _expectedAmount = 0;
   int _minutes = 0;
+  late SharedPreferences _pref;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_){
-      _getSharedPref();
-    });
-  }
-
-  void _getSharedPref() async {
-    _pref = await SharedPreferences.getInstance();
-    setState(() {
-      _expectedAmount = _pref.getInt('expectedAmount') ?? 0;
-      _minutes = _pref.getInt('minutes') ?? 0;
+      _initSharedPref();
     });
   }
 
@@ -49,48 +41,15 @@ class SettingsState extends State<SettingsWidget> {
                 SettingsSection(
                   title: const Text('Common'),
                   tiles: <AbstractSettingsTile>[
-                    CustomSettingsTile(
-                      child: TextFormField(
-                        decoration: const InputDecoration(
-                          hintText: 'Expected sessions',
-                        ),
-                        controller: TextEditingController()..text = _expectedAmount.toString(),
-                        validator: (String? value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter a number';
-                          }
-                          if(int.parse(value, onError: (e) => -1) <= 0) {
-                            return 'Please enter a valid number';
-                          }
-                          return null;
-                        },
-                        
-                        onChanged: (value) {
-                          _expectedAmount = int.parse(value);
-                          _pref.setInt('expectedAmount', _expectedAmount);
-                        }
-                      )
+                    _numInputTile(
+                      hintText: 'Expected sessions',
+                      initialValue: _expectedAmount,
+                      key: "expectedAmount"
                     ),
-                    CustomSettingsTile(
-                      child: TextFormField(
-                        decoration: const InputDecoration(
-                          hintText: 'Expected session time',
-                        ),
-                        controller: TextEditingController()..text = _minutes.toString(),
-                        validator: (String? value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter a number';
-                          }
-                          if(int.parse(value, onError: (e) => -1) <= 0) {
-                            return 'Please enter a valid number';
-                          }
-                          return null;
-                        },
-                        onChanged: (value) {
-                          _minutes = int.parse(value);
-                          _pref.setInt('minutes', _minutes);
-                        }
-                      )
+                    _numInputTile(
+                      hintText: 'Expected sessions time',
+                      initialValue: _minutes,
+                      key: "minutes"
                     ),
                   ],
                 ),
@@ -99,4 +58,39 @@ class SettingsState extends State<SettingsWidget> {
     );
   }
 
+  void _initSharedPref() async {
+    _pref = await SharedPreferences.getInstance();
+    setState(() {
+      _expectedAmount = _pref.getInt('expectedAmount') ?? 0;
+      _minutes = _pref.getInt('minutes') ?? 0;
+    });
+  }
+
+  CustomSettingsTile _numInputTile({
+    String hintText = '',
+    required int initialValue,
+    required String key
+  }) {
+    return CustomSettingsTile(
+        child: TextFormField(
+          decoration: InputDecoration(
+            hintText: hintText,
+          ),
+          controller: TextEditingController()..text = initialValue.toString(),
+          validator: (String? value) {
+            if (value == null || value.isEmpty) {
+              return 'Please enter a number';
+            }
+            if(int.parse(value, onError: (e) => -1) <= 0) {
+              return 'Please enter a valid number';
+            }
+            return null;
+          },
+          onChanged: (value) {
+            final int updatedValue = int.tryParse(value) ?? 0;
+            _pref.setInt(key, updatedValue);
+          }
+        )
+      );
+  }
 }
