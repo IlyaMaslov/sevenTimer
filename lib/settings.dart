@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:settings_ui/settings_ui.dart';
 import 'package:seven/constants.dart';
+import 'package:seven/storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SettingsWidget extends StatefulWidget {
@@ -18,7 +19,7 @@ class SettingsWidget extends StatefulWidget {
 class SettingsState extends State<SettingsWidget> {
   int _expectedAmount = 0;
   int _minutes = 0;
-  late SharedPreferences _pref;
+  final SharedPreferencesStorage _storage = SharedPreferencesStorage();
 
   @override
   void initState() {
@@ -59,10 +60,12 @@ class SettingsState extends State<SettingsWidget> {
   }
 
   void _initSharedPref() async {
-    _pref = await SharedPreferences.getInstance();
+    int expectedAmount = int.tryParse(await _storage.queue('expectedAmount') ?? '0') ?? 0;
+    int minutes = int.tryParse(await _storage.queue('minutes') ?? '0') ?? 0;
+    
     setState(() {
-      _expectedAmount = _pref.getInt('expectedAmount') ?? 0;
-      _minutes = _pref.getInt('minutes') ?? 0;
+      _expectedAmount = expectedAmount;
+      _minutes = minutes;
     });
   }
 
@@ -88,7 +91,7 @@ class SettingsState extends State<SettingsWidget> {
           },
           onChanged: (value) {
             final int updatedValue = int.tryParse(value) ?? 0;
-            _pref.setInt(key, updatedValue);
+            _storage.push(key, updatedValue.toString());
           }
         )
       );

@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:seven/constants.dart';
+import 'package:seven/storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:system_tray/system_tray.dart' as SystemTray;
 
@@ -21,14 +22,14 @@ class TimerState extends State<TimerWidget> with RouteAware {
   int _done = 0;
   int _minutes = 0;
   String _remainingTime = "00:00";
-  Stopwatch _stopwatch = Stopwatch();
-  late SharedPreferences _pref;
+  final Stopwatch _stopwatch = Stopwatch();
+  final SharedPreferencesStorage _storage = SharedPreferencesStorage();
 
   @override
   void initState() {
     super.initState();
     _initSystemTray();
-    _initSharedPref();
+    _loadSavedState();
     _initUpdateTimer();
     /*WidgetsBinding.instance.addPostFrameCallback((_){
       _setSharedPref();
@@ -160,16 +161,14 @@ class TimerState extends State<TimerWidget> with RouteAware {
     tryUpdateTimer();
   }
 
-  Future<void> _initSharedPref() async {
-    _pref = await SharedPreferences.getInstance();
+  Future<void> _loadSavedState() async {
+    int expectedAmount = int.tryParse(await _storage.queue('expectedAmount') ?? '0') ?? 0;
+    int minutes = int.tryParse(await _storage.queue('minutes') ?? '0') ?? 0;
+    
     setState(() {
-      _expectedAmount = _pref.getInt('expectedAmount') ?? 0;
-      _minutes = _pref.getInt('minutes') ?? 0;
-      
-      final String currentDate = _currentDate();
-      final String productivity = _pref.getString('productivity-$currentDate') ?? "0/0";
-      final String productivityFirstHalf = productivity.split('/')[0];
-      _done = int.tryParse(productivityFirstHalf) ?? 0;
+      _expectedAmount = expectedAmount;
+      _minutes = minutes;
+      _done = _storage.currentProductivity();
     });
   }
 
@@ -179,8 +178,8 @@ class TimerState extends State<TimerWidget> with RouteAware {
 
   //TODO: should replace it with a proper notify systems
   Future<void> tryUpdateTimer() async {
-    int expectedAmount = _pref.getInt('expectedAmount') ?? -1;
-    int minutes = _pref.getInt('minutes') ?? -1;
+    int expectedAmount = int.tryParse(await _storage.queue('expectedAmount') ?? '0') ?? 0;
+    int minutes = int.tryParse(await _storage.queue('minutes') ?? '0') ?? 0;
     if(_expectedAmount != expectedAmount && expectedAmount > -1 ||
       _minutes != minutes && minutes > -1) {
         setState(() {
@@ -204,20 +203,7 @@ class TimerState extends State<TimerWidget> with RouteAware {
     });
   }
 
-  //TODO: should add private options for storing statistics
   Future<void> _updateStatisticsInfo() async {
-    final String currentDate = _currentDate();
-
-    if(!_pref.containsKey("firstDate")) {
-      _pref.setString("firstDate", currentDate);
-    }
-
-    _pref.setString("productivity-$currentDate", "$_done/$_expectedAmount");
-  }
-
-  String _currentDate() {
-    var now = DateTime.now();
-    String currentDate = '${now.year}-${now.month}-${now.day}';
-    return currentDate;
+    _storage.incProductStorage(_expectedAmount);
   }
 }

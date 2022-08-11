@@ -15,7 +15,7 @@ class Productivity {
 abstract class AbstractStorage {
   
   @protected
-  late HashMap<DateTime, Productivity> productivity;
+  HashMap<DateTime, Productivity> productivity = HashMap();
 
   AbstractStorage() {
     queueProductStorage();
@@ -44,7 +44,7 @@ abstract class AbstractStorage {
   }
 
   Future<void> push(String key, String value);
-  Future<String> queue(String key);
+  Future<String?> queue(String key);
 
   @protected
   Future<void> incProductStorage(int expectedAmount);
@@ -110,15 +110,13 @@ class SharedPreferencesStorage extends AbstractStorage {
   }
   
   @override
-  Future<void> push(String key, String value) {
-    // TODO: implement push
-    throw UnimplementedError();
+  Future<void> push(String key, String value) async {
+    _pref.setString(key, value);
   }
   
   @override
-  Future<String> queue(String key) {
-    // TODO: implement queue
-    throw UnimplementedError();
+  Future<String?> queue(String key) async {
+    return _pref.get(key)?.toString();
   }
 
   Future<void> _initSharedPref() async {
