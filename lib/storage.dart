@@ -12,15 +12,16 @@ class Productivity {
     Productivity(this.done, this.expectedAmount);
 }
 
-abstract class AbstractStorage {
+/*abstract class AbstractStorage {
   
+  Future<void> push(String key, String value);
+  Future<String> queue(String key);
+}
+
+abstract class AbstractProductivityStorage extends AbstractStorage {
   @protected
   late HashMap<DateTime, Productivity> productivity;
 
-  AbstractStorage() {
-    queueProductStorage();
-  }
-  
   void incrementProductivity({required int done, required int expectedAmount}) {
     DateTime now = currentDateTime();
     
@@ -43,9 +44,6 @@ abstract class AbstractStorage {
     return 0;
   }
 
-  Future<void> push(String key, String value);
-  Future<String> queue(String key);
-
   @protected
   Future<void> incProductStorage(int expectedAmount);
   @protected
@@ -57,8 +55,21 @@ abstract class AbstractStorage {
     DateTime nowDate = DateTime(nowFull.year, nowFull.month, nowFull.day);
     return nowDate;
   }
-
 }
+
+abstract class AbstractSettingsStorage extends AbstractStorage {
+  void pushInt(String key, int value);
+  void pushBool(String key, bool value);
+  void pushString(String key, String value);
+  void pushDouble(String key, double value);
+
+  int queueInt(String key);
+  bool queueBool(String key);
+  String queueString(String key);
+  double queueDouble(String key);
+}
+
+class SharedPreferences
 
 class SharedPreferencesStorage extends AbstractStorage {
   late SharedPreferences _pref;
@@ -220,5 +231,41 @@ class HttpStorage extends AbstractStorage {
 }
 
 class StorageBuilder {
-  
+
+}*/
+
+//----------------------------------------------------------------------------------
+
+enum StorageOption {
+  SHARED_PREFERENCES,
+  CSV,
+  HTTP_SERVER
+}
+
+abstract class AbstractStorageFactory {
+
+}
+
+class SettingsStorageFactory implements AbstractStorageFactory {
+
+}
+
+class ProductivityStorageFactory implements AbstractStorageFactory {
+
+}
+
+class Storage {
+//push throw if called
+//queue
+}
+
+//it means that for each storage type i will need three classes
+//it will indeed help me move each layer of abstraction over storage in different classes
+//but it will be hard to read with all of them in the same file
+class SharedPreferencesStorage implements Storage {
+
+}
+
+class ProductivitySPStorage extends SharedPreferencesStorage {
+//it means that all productivity fields must be operated with the same logic
 }
