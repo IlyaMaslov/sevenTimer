@@ -19,13 +19,13 @@ class SettingsWidget extends StatefulWidget {
 class SettingsState extends State<SettingsWidget> {
   int _expectedAmount = 0;
   int _minutes = 0;
-  final SharedPreferencesStorage _storage = SharedPreferencesStorage();
+  late SharedPreferencesStorage _storage;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_){
-      _initSharedPref();
+      _initStorage();
     });
   }
 
@@ -59,7 +59,9 @@ class SettingsState extends State<SettingsWidget> {
     );
   }
 
-  void _initSharedPref() async {
+  void _initStorage() async {
+    _storage = await SharedPreferencesStorage.init();
+    
     int expectedAmount = int.tryParse(await _storage.queue('expectedAmount') ?? '0') ?? 0;
     int minutes = int.tryParse(await _storage.queue('minutes') ?? '0') ?? 0;
     

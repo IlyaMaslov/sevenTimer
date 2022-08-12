@@ -23,17 +23,14 @@ class TimerState extends State<TimerWidget> with RouteAware {
   int _minutes = 0;
   String _remainingTime = "00:00";
   final Stopwatch _stopwatch = Stopwatch();
-  final SharedPreferencesStorage _storage = SharedPreferencesStorage();
+  late SharedPreferencesStorage _storage;
 
   @override
   void initState() {
     super.initState();
     _initSystemTray();
-    _loadSavedState();
+    _loadStorage();
     _initUpdateTimer();
-    /*WidgetsBinding.instance.addPostFrameCallback((_){
-      _setSharedPref();
-    });*/
   }
 
   @override
@@ -161,7 +158,9 @@ class TimerState extends State<TimerWidget> with RouteAware {
     tryUpdateTimer();
   }
 
-  Future<void> _loadSavedState() async {
+  Future<void> _loadStorage() async {
+    _storage = await SharedPreferencesStorage.init();
+    
     int expectedAmount = int.tryParse(await _storage.queue('expectedAmount') ?? '0') ?? 0;
     int minutes = int.tryParse(await _storage.queue('minutes') ?? '0') ?? 0;
     

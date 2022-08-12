@@ -1,4 +1,5 @@
 import 'dart:collection';
+import 'dart:io';
 import 'dart:math';
 
 import 'package:flutter/foundation.dart';
@@ -18,7 +19,7 @@ abstract class AbstractStorage {
   HashMap<DateTime, Productivity> productivity = HashMap();
 
   AbstractStorage() {
-    queueProductStorage();
+    //queueProductStorage();
   }
   
   void incrementProductivity({required int done, required int expectedAmount}) {
@@ -63,8 +64,13 @@ abstract class AbstractStorage {
 class SharedPreferencesStorage extends AbstractStorage {
   late SharedPreferences _pref;
 
-  SharedPreferencesStorage() {
-    _initSharedPref();
+  SharedPreferencesStorage._init();
+  
+  static Future<SharedPreferencesStorage> init() async {
+    SharedPreferencesStorage storage = SharedPreferencesStorage._init();
+    await storage._initSharedPref();
+    await storage.queueProductStorage();
+    return storage;
   }
 
   @override
@@ -90,33 +96,39 @@ class SharedPreferencesStorage extends AbstractStorage {
   
   @override
   Future<void> queueProductStorage() async {
-    final String firstLoggedDate = _pref.getString("firstDate") ?? "";
-    final DateTime currentDate = super.currentDateTime();
-    DateTime date = _parseDate(firstLoggedDate) ?? currentDate;
+    if(_pref.containsKey("firstDate")) {
+      final String firstLoggedDate = _pref.getString("firstDate") ?? "";
+      final DateTime currentDate = super.currentDateTime();
+      DateTime date = _parseDate(firstLoggedDate) ?? currentDate;
     
-    while(date.isBefore(currentDate) || date.isAtSameMomentAs(currentDate)) {
-      final String parsedDate = _formatDate(date);
-      final String loggedProductivity = _pref.getString("productivity-$parsedDate") ?? "";
-      if(loggedProductivity.isNotEmpty) {
-        final List<String> productivityParts = loggedProductivity.split('/');
+      while(!date.isAfter(currentDate)) {
+        
+        stdout.writeln('looking for statistics for prev days: ' + date.toString());
+        
+        final String parsedDate = _formatDate(date);
+        final String loggedProductivity = _pref.getString("productivity-$parsedDate") ?? "";
+        if(loggedProductivity.isNotEmpty) {
+          final List<String> productivityParts = loggedProductivity.split('/');
       
-        final int done = int.tryParse(productivityParts[0]) ?? 0;
-        final int expectedAmount = int.tryParse(productivityParts[1]) ?? 0;
-        Productivity parsedProd = Productivity(done, expectedAmount);
-        super.productivity[date] = parsedProd;
+          final int done = int.tryParse(productivityParts[0]) ?? 0;
+          final int expectedAmount = int.tryParse(productivityParts[1]) ?? 0;
+          Productivity parsedProd = Productivity(done, expectedAmount);
+          super.productivity[date] = parsedProd;
+        }
+        date = date.add(const Duration(days: 1));
       }
-      date.add(const Duration(days: 1));
     }
+    return;
   }
   
   @override
   Future<void> push(String key, String value) async {
-    _pref.setString(key, value);
+    _pref.setInt(key, int.parse(value));
   }
   
   @override
   Future<String?> queue(String key) async {
-    return _pref.get(key)?.toString();
+    return _pref.getInt(key)?.toString();
   }
 
   Future<void> _initSharedPref() async {
