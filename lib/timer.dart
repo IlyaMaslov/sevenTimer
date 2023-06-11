@@ -145,7 +145,7 @@ class TimerState extends State<TimerWidget> with RouteAware {
       _remainingTime = remainingTime;
     });
 
-    if(remainingMinutes == 0 && remainingSeconds == 0) {
+    if(remainingMinutes == 0 && remainingSeconds == 0 && _stopwatch.elapsed.inSeconds > 0) {
       setState(() {
         _done++;
         _stopwatch.stop();
@@ -153,6 +153,7 @@ class TimerState extends State<TimerWidget> with RouteAware {
         _updateStatisticsInfo();
       });//TODO: do i need to use setState for stopwatch?
       //TODO: add sound alert
+      //TODO: add handling for empty timer in settings
     }
 
     tryUpdateTimer();

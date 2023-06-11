@@ -45,12 +45,14 @@ class SettingsState extends State<SettingsWidget> {
                     _numInputTile(
                       hintText: 'Expected sessions',
                       initialValue: _expectedAmount,
-                      key: "expectedAmount"
+                      key: "expectedAmount",
+                      title: "Expected Amount"
                     ),
                     _numInputTile(
                       hintText: 'Expected sessions time',
                       initialValue: _minutes,
-                      key: "minutes"
+                      key: "minutes",
+                      title: "Minutes"
                     ),
                   ],
                 ),
@@ -74,7 +76,8 @@ class SettingsState extends State<SettingsWidget> {
   CustomSettingsTile _numInputTile({
     String hintText = '',
     required int initialValue,
-    required String key
+    required String key,
+    required String title
   }) {
     return CustomSettingsTile(
         child: TextFormField(

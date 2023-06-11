@@ -123,12 +123,12 @@ class SharedPreferencesStorage extends AbstractStorage {
   
   @override
   Future<void> push(String key, String value) async {
-    _pref.setInt(key, int.parse(value));
+    _pref.setString(key, value);
   }
   
   @override
   Future<String?> queue(String key) async {
-    return _pref.getInt(key)?.toString();
+    return _pref.getString(key);
   }
 
   Future<void> _initSharedPref() async {
