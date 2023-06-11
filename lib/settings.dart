@@ -61,7 +61,7 @@ class SettingsState extends State<SettingsWidget> {
   void _initSharedPref() async {
     _pref = await SharedPreferences.getInstance();
     setState(() {
-      _expectedAmount = _pref.getInt('expectedAmount') ?? 0;
+      _expectedAmount = int.parse(_pref.getString('expectedAmount') ?? '0');
       _minutes = _pref.getInt('minutes') ?? 0;
     });
   }

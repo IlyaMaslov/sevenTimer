@@ -30,9 +30,6 @@ class TimerState extends State<TimerWidget> with RouteAware {
     _initSystemTray();
     _initSharedPref();
     _initUpdateTimer();
-    /*WidgetsBinding.instance.addPostFrameCallback((_){
-      _setSharedPref();
-    });*/
   }
 
   @override
@@ -163,7 +160,7 @@ class TimerState extends State<TimerWidget> with RouteAware {
   Future<void> _initSharedPref() async {
     _pref = await SharedPreferences.getInstance();
     setState(() {
-      _expectedAmount = _pref.getInt('expectedAmount') ?? 0;
+      _expectedAmount = int.parse(_pref.getString('expectedAmount') ?? '0');
       _minutes = _pref.getInt('minutes') ?? 0;
       
       final String currentDate = _currentDate();

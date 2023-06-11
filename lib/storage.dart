@@ -1,9 +1,6 @@
 import 'dart:collection';
-import 'dart:math';
 
 import 'package:flutter/foundation.dart';
-import 'package:http/http.dart';
-import 'package:seven/timer.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class Productivity {
@@ -12,85 +9,75 @@ class Productivity {
     Productivity(this.done, this.expectedAmount);
 }
 
-/*abstract class AbstractStorage {
-  
-  Future<void> push(String key, String value);
-  Future<String> queue(String key);
-}
+class BaseProductivityStorage {
+  static const String _unsupportedError = "BaseProductivityStorage should be overriden";
 
-abstract class AbstractProductivityStorage extends AbstractStorage {
-  @protected
-  late HashMap<DateTime, Productivity> productivity;
-
-  void incrementProductivity({required int done, required int expectedAmount}) {
-    DateTime now = currentDateTime();
-    
-    if(!productivity.containsKey(now)) {
-      productivity[now] = Productivity(0, 0);
-    }
-    productivity[now]?.done++;
-    productivity[now]?.expectedAmount = expectedAmount;
-    
-    incProductStorage(expectedAmount);
+  BaseProductivityStorage._ () {
+    throw UnsupportedError("Storage should be created by a factory method");
   }
 
-  int currentProductivity();
-  
+  void incrementProductivity(int expectedAmount) {
+    throw UnsupportedError(_unsupportedError);
+  }
+
   int productivityOn(DateTime date) {
-    return 0;
+    throw UnsupportedError(_unsupportedError);
   }
 
   int expectedAmountOn(DateTime date) {
-    return 0;
+    throw UnsupportedError(_unsupportedError);
   }
 
-  @protected
-  Future<void> incProductStorage(int expectedAmount);
-  @protected
-  Future<void> queueProductStorage();
-
-  @protected
-  DateTime currentDateTime() {
-    DateTime nowFull = DateTime.now();
-    DateTime nowDate = DateTime(nowFull.year, nowFull.month, nowFull.day);
-    return nowDate;
+  List<DateTime> loggedDates() {
+    throw UnsupportedError(_unsupportedError);
   }
 }
 
-abstract class AbstractSettingsStorage extends AbstractStorage {
-  void pushInt(String key, int value);
-  void pushBool(String key, bool value);
-  void pushString(String key, String value);
-  void pushDouble(String key, double value);
+class BaseSettingsStorage {
+  static const String _unsupportedError = "BaseSettingsStorage should be overriden";
+  
+  void setInt(String key, int value) {
+    throw UnsupportedError(_unsupportedError);
+  }
+  int getInt(String key) {
+    throw UnsupportedError(_unsupportedError);
+  }
 
-  int queueInt(String key);
-  bool queueBool(String key);
-  String queueString(String key);
-  double queueDouble(String key);
+  void setString(String key, String value) {
+    throw UnsupportedError(_unsupportedError);
+  }
+  String getString(String key) {
+    throw UnsupportedError(_unsupportedError);
+  }
+
+  bool exists(String key) {
+    throw UnsupportedError(_unsupportedError);
+  }
 }
 
-class SharedPreferences
-
-class SharedPreferencesStorage extends AbstractStorage {
+class SharedPrefProductivityStorage implements BaseProductivityStorage {
+  HashMap<DateTime, Productivity> productivity = HashMap();
   late SharedPreferences _pref;
 
-  SharedPreferencesStorage() {
-    _initSharedPref();
-  }
-
-  @override
-  int currentProductivity() {
-    final String currentDate = _currentDate();
-    final String productivity = _pref.getString('productivity-$currentDate') ?? "0/0";
-    final String productivityFirstHalf = productivity.split('/')[0];
-    return int.tryParse(productivityFirstHalf) ?? 0;
+  static Future<BaseProductivityStorage> init() async {
+    SharedPrefProductivityStorage storage = SharedPrefProductivityStorage();
+    await storage._initSharedPref();
+    await storage._queueProductStorage();
+    return storage;
   }
   
   @override
-  Future<void> incProductStorage(int expectedAmount) async {
+  void incrementProductivity(int expectedAmount) {
+    final DateTime currentDateTime = _currentDateTime();
+    
+    if(!productivity.containsKey(currentDateTime)) {
+      productivity[currentDateTime] = Productivity(0, 0);
+    }
+    productivity[currentDateTime]?.done++;
+    productivity[currentDateTime]?.expectedAmount = expectedAmount;
+    
     final String currentDate = _currentDate();
-    final DateTime currentDateTime = super.currentDateTime();
-    final int done = super.productivity[currentDateTime]?.done ?? 0;
+    final int done = productivity[currentDateTime]?.done ?? 0;
 
     if(!_pref.containsKey("firstDate")) {
       _pref.setString("firstDate", currentDate);
@@ -98,11 +85,32 @@ class SharedPreferencesStorage extends AbstractStorage {
 
     _pref.setString("productivity-$currentDate", "$done/$expectedAmount");
   }
+
+  @override
+  List<DateTime> loggedDates() {
+    // TODO: implement loggedDates
+    throw UnimplementedError();
+  }
+
+  @override
+  int productivityOn(DateTime date) {
+    // TODO: implement productivityOn
+    throw UnimplementedError();
+  }
   
   @override
-  Future<void> queueProductStorage() async {
+  int expectedAmountOn(DateTime date) {
+    // TODO: implement expectedAmountOn
+    throw UnimplementedError();
+  }
+
+  Future<void> _initSharedPref() async {
+    _pref = await SharedPreferences.getInstance();
+  }
+
+  Future<void> _queueProductStorage() async {
     final String firstLoggedDate = _pref.getString("firstDate") ?? "";
-    final DateTime currentDate = super.currentDateTime();
+    final DateTime currentDate = _currentDateTime();
     DateTime date = _parseDate(firstLoggedDate) ?? currentDate;
     
     while(date.isBefore(currentDate) || date.isAtSameMomentAs(currentDate)) {
@@ -114,26 +122,16 @@ class SharedPreferencesStorage extends AbstractStorage {
         final int done = int.tryParse(productivityParts[0]) ?? 0;
         final int expectedAmount = int.tryParse(productivityParts[1]) ?? 0;
         Productivity parsedProd = Productivity(done, expectedAmount);
-        super.productivity[date] = parsedProd;
+        productivity[date] = parsedProd;
       }
       date.add(const Duration(days: 1));
     }
   }
-  
-  @override
-  Future<void> push(String key, String value) {
-    // TODO: implement push
-    throw UnimplementedError();
-  }
-  
-  @override
-  Future<String> queue(String key) {
-    // TODO: implement queue
-    throw UnimplementedError();
-  }
 
-  Future<void> _initSharedPref() async {
-    _pref = await SharedPreferences.getInstance();
+  DateTime _currentDateTime() {
+    DateTime nowFull = DateTime.now();
+    DateTime nowDate = DateTime(nowFull.year, nowFull.month, nowFull.day);
+    return nowDate;
   }
 
   String _formatDate(DateTime date) {
@@ -160,112 +158,36 @@ class SharedPreferencesStorage extends AbstractStorage {
 
     return null;
   }
-}
-
-class CSVStorage extends AbstractStorage {
-  @override
-  int currentProductivity() {
-    // TODO: implement currentProductivity
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<void> incProductStorage(int expectedAmount) {
-    // TODO: implement incProductStorage
-    throw UnimplementedError();
-  }
-  
-  @override
-  Future<void> queueProductStorage() {
-    // TODO: implement queueProductStorage
-    throw UnimplementedError();
-  }
-  
-  @override
-  Future<void> push(String key, String value) {
-    // TODO: implement push
-    throw UnimplementedError();
-  }
-  
-  @override
-  Future<String> queue(String key) {
-    // TODO: implement queue
-    throw UnimplementedError();
-  }
 
 }
 
-class HttpStorage extends AbstractStorage {
-  late String ip;
-  
+class SharedPrefSettingsStorage implements BaseSettingsStorage {
   @override
-  int currentProductivity() {
-    // TODO: implement currentProductivity
-    throw UnimplementedError();
-  }
-  
-  @override
-  Future<void> incProductStorage(int expectedAmount) {
-    // TODO: implement incProductStorage
-    throw UnimplementedError();
-  }
-  
-  @override
-  Future<void> queueProductStorage() {
-    // TODO: implement queueProductStorage
-    throw UnimplementedError();
-  }
-  
-  @override
-  Future<void> push(String key, String value) {
-    // TODO: implement push
-    throw UnimplementedError();
-  }
-  
-  @override
-  Future<String> queue(String key) {
-    // TODO: implement queue
+  bool exists(String key) {
+    // TODO: implement exists
     throw UnimplementedError();
   }
 
-}
+  @override
+  int getInt(String key) {
+    // TODO: implement getInt
+    throw UnimplementedError();
+  }
 
-class StorageBuilder {
+  @override
+  String getString(String key) {
+    // TODO: implement getString
+    throw UnimplementedError();
+  }
 
-}*/
+  @override
+  void setInt(String key, int value) {
+    // TODO: implement setInt
+  }
 
-//----------------------------------------------------------------------------------
+  @override
+  void setString(String key, String value) {
+    // TODO: implement setString
+  }
 
-enum StorageOption {
-  SHARED_PREFERENCES,
-  CSV,
-  HTTP_SERVER
-}
-
-abstract class AbstractStorageFactory {
-
-}
-
-class SettingsStorageFactory implements AbstractStorageFactory {
-
-}
-
-class ProductivityStorageFactory implements AbstractStorageFactory {
-
-}
-
-class Storage {
-//push throw if called
-//queue
-}
-
-//it means that for each storage type i will need three classes
-//it will indeed help me move each layer of abstraction over storage in different classes
-//but it will be hard to read with all of them in the same file
-class SharedPreferencesStorage implements Storage {
-
-}
-
-class ProductivitySPStorage extends SharedPreferencesStorage {
-//it means that all productivity fields must be operated with the same logic
 }
