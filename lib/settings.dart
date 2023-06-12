@@ -80,24 +80,30 @@ class SettingsState extends State<SettingsWidget> {
     required String title
   }) {
     return CustomSettingsTile(
-        child: TextFormField(
-          decoration: InputDecoration(
-            hintText: hintText,
-          ),
-          controller: TextEditingController()..text = initialValue.toString(),
-          validator: (String? value) {
-            if (value == null || value.isEmpty) {
-              return 'Please enter a number';
-            }
-            if(int.parse(value, onError: (e) => -1) <= 0) {
-              return 'Please enter a valid number';
-            }
-            return null;
-          },
-          onChanged: (value) {
-            final int updatedValue = int.tryParse(value) ?? 0;
-            _storage.push(key, updatedValue.toString());
-          }
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(title),
+            TextFormField(
+              decoration: InputDecoration(
+                hintText: hintText,
+              ),
+              controller: TextEditingController()..text = initialValue.toString(),
+              validator: (String? value) {
+                if (value == null || value.isEmpty) {
+                  return 'Please enter a number';
+                }
+                if(int.parse(value, onError: (e) => -1) <= 0) {
+                  return 'Please enter a valid number';
+                }
+                return null;
+              },
+              onChanged: (value) {
+                final int updatedValue = int.tryParse(value) ?? 0;
+                _storage.push(key, updatedValue.toString());
+              }
+            )
+          ]
         )
       );
   }
