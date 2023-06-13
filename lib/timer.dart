@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_windowmanager/flutter_windowmanager.dart';
 import 'package:seven/constants.dart';
 import 'package:seven/storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -18,6 +19,7 @@ class TimerWidget extends StatefulWidget {
 }
 
 class TimerState extends State<TimerWidget> with RouteAware {
+  bool _isWindowOnTop = false;
   int _expectedAmount = 0;
   int _done = 0;
   int _minutes = 0;
@@ -151,6 +153,9 @@ class TimerState extends State<TimerWidget> with RouteAware {
         _stopwatch.stop();
         _stopwatch.reset();
         _updateStatisticsInfo();
+
+        _toggleWindowOnTop();//bring window on top and allow to close it right away
+        _toggleWindowOnTop();
       });//TODO: do i need to use setState for stopwatch?
       //TODO: add sound alert
       //TODO: add handling for empty timer in settings
@@ -205,5 +210,18 @@ class TimerState extends State<TimerWidget> with RouteAware {
 
   Future<void> _updateStatisticsInfo() async {
     _storage.incProductStorage(_expectedAmount);
+  }
+
+  void _toggleWindowOnTop() {
+    setState(() {
+      _isWindowOnTop = !_isWindowOnTop;
+      if (_isWindowOnTop) {
+        FlutterWindowManager.addFlags(FlutterWindowManager.FLAG_SHOW_WHEN_LOCKED |
+          FlutterWindowManager.FLAG_TURN_SCREEN_ON);
+      } else {
+        FlutterWindowManager.clearFlags(FlutterWindowManager.FLAG_SHOW_WHEN_LOCKED |
+          FlutterWindowManager.FLAG_TURN_SCREEN_ON);
+      }
+    });
   }
 }
