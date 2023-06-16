@@ -85,7 +85,8 @@ class SharedPreferencesStorage extends AbstractStorage {
   Future<void> incProductStorage(int expectedAmount) async {
     final String currentDate = _currentDate();
     final DateTime currentDateTime = super.currentDateTime();
-    final int done = super.productivity[currentDateTime]?.done ?? 0;
+    int done = super.productivity[currentDateTime]?.done ?? 0;
+    done++;
 
     if(!_pref.containsKey("firstDate")) {
       _pref.setString("firstDate", currentDate);
@@ -102,10 +103,10 @@ class SharedPreferencesStorage extends AbstractStorage {
       DateTime date = _parseDate(firstLoggedDate) ?? currentDate;
     
       while(!date.isAfter(currentDate)) {
-        
-        stdout.writeln('looking for statistics for prev days: ' + date.toString());
-        
         final String parsedDate = _formatDate(date);
+
+        stdout.writeln('looking for statistics for prev days: ' + date.toString());
+
         final String loggedProductivity = _pref.getString("productivity-$parsedDate") ?? "";
         if(loggedProductivity.isNotEmpty) {
           final List<String> productivityParts = loggedProductivity.split('/');

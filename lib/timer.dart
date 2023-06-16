@@ -21,11 +21,11 @@ class TimerWidget extends StatefulWidget {
 class TimerState extends State<TimerWidget> with RouteAware {
   bool _isWindowOnTop = false;
   int _expectedAmount = 0;
-  int _done = 0;
   int _minutes = 0;
   String _remainingTime = "00:00";
   final Stopwatch _stopwatch = Stopwatch();
   late SharedPreferencesStorage _storage;
+  bool _storageInitialized = false;
 
   @override
   void initState() {
@@ -83,7 +83,7 @@ class TimerState extends State<TimerWidget> with RouteAware {
               ),
             ),
             Text(
-              '$_done/$_expectedAmount',
+              '${_storageInitialized ? _storage.currentProductivity() : 0}/$_expectedAmount',
               style: progressStyle,
             )
           ],
@@ -127,6 +127,7 @@ class TimerState extends State<TimerWidget> with RouteAware {
     final int elapsedSeconds = _stopwatch.elapsed.inSeconds - (_stopwatch.elapsed.inMinutes * 60);
     int remainingMinutes = _minutes - _stopwatch.elapsed.inMinutes;
     int remainingSeconds = 0;
+
     if(elapsedSeconds != 0) {
       remainingSeconds = 60 - elapsedSeconds;
       remainingMinutes--;
@@ -149,7 +150,6 @@ class TimerState extends State<TimerWidget> with RouteAware {
 
     if(remainingMinutes == 0 && remainingSeconds == 0 && _stopwatch.elapsed.inSeconds > 0) {
       setState(() {
-        _done++;
         _stopwatch.stop();
         _stopwatch.reset();
         _updateStatisticsInfo();
@@ -173,8 +173,9 @@ class TimerState extends State<TimerWidget> with RouteAware {
     setState(() {
       _expectedAmount = expectedAmount;
       _minutes = minutes;
-      _done = _storage.currentProductivity();
     });
+
+    _storageInitialized = true;
   }
 
   void _initUpdateTimer() {
